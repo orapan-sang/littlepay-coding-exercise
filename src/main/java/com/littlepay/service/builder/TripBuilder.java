@@ -7,6 +7,9 @@ import com.littlepay.service.bean.Trip;
 import com.littlepay.service.bean.TripStatus;
 
 import java.math.BigDecimal;
+import java.time.Instant;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -16,12 +19,13 @@ public class TripBuilder {
     // Map of bus traveller who used the same card on the same bus in the same day and Tap ON
     public static Map<BusTraveller, Tap> BUS_TRAVELLER_TAP_ON = new HashMap<>();
 
-    public static void processTravellerTap(BusTraveller traveller, Tap newTap) {
+    public static Trip processTap(Tap newTap) {
+        Trip trip = null;
+        BusTraveller traveller = getBusTraveller(newTap);
         if (BUS_TRAVELLER_TAP_ON.containsKey(traveller)) {
             Tap tapOn = BUS_TRAVELLER_TAP_ON.get(traveller);
-            Trip trip = matchTapsToTrip(tapOn, newTap);
+            trip = matchTapsToTrip(tapOn, newTap);
             if (trip != null) {
-                TRIPS.add(trip);
                 if (trip.getStatus().equals(TripStatus.INCOMPLETE))
                     // Found an INCOMPLETE trip so add a new tap ON to find a matching Tap OFF
                     BUS_TRAVELLER_TAP_ON.put(traveller, newTap);
@@ -29,14 +33,19 @@ public class TripBuilder {
                     // Remove this Tap ON when newTap is a matching Tap OFF (COMPLETE, CANCELLED)
                     BUS_TRAVELLER_TAP_ON.remove(traveller);
             }
-            Log.fine("Cannot find matching tap for {0}", new Object[]{newTap});
+            else {
+                Log.fine("Cannot find matching tap for {0}", new Object[]{newTap});
+            }
         }
         else {
             if (newTap.getType().isTapOn()) {
                 BUS_TRAVELLER_TAP_ON.put(traveller, newTap);
             }
-            Log.fine("Tap OFF without Tap ON: {0}", new Object[]{newTap});
+            else {
+                Log.fine("Tap OFF without Tap ON: {0}", new Object[]{newTap});
+            }
         }
+        return trip;
     }
 
     public static void finalizeIncompleteTrip() {
@@ -69,6 +78,15 @@ public class TripBuilder {
             }
         }
         return null;
+    }
+
+    public static BusTraveller getBusTraveller(Tap tap) {
+        LocalDateTime dateTime = LocalDateTime.ofInstant(Instant.ofEpochSecond(tap.getDateTimeInSecs()), UTC_TIME_ZONE);
+        LocalDate date = dateTime.toLocalDate();
+        BusTraveller traveller = new BusTraveller(tap.getCompanyId(), tap.getBusId(), tap.getPan(),
+                date.atStartOfDay(UTC_TIME_ZONE).toEpochSecond());
+
+        return traveller;
     }
 
     private static BigDecimal getFare(String fromStopId, String toStopId)

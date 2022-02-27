@@ -4,14 +4,14 @@ import java.math.BigDecimal;
 
 public class Trip implements Comparable<Trip> {
     private long started;
-    private long finished;
+    private Long finished;
     private String fromStopId;
     private String toStopId;
     private String companyId;
     private String busId;
     private String pan;
     private BigDecimal chargeAmount;
-    private long durationSecs;
+    private Long durationSecs;
     private TripStatus status;
 
     public Trip() {
@@ -26,11 +26,11 @@ public class Trip implements Comparable<Trip> {
         this.started = started;
     }
 
-    public long getFinished() {
+    public Long getFinished() {
         return finished;
     }
 
-    public void setFinished(long finished) {
+    public void setFinished(Long finished) {
         this.finished = finished;
     }
 
@@ -82,11 +82,11 @@ public class Trip implements Comparable<Trip> {
         this.chargeAmount = chargeAmount;
     }
 
-    public long getDurationSecs() {
+    public Long getDurationSecs() {
         return durationSecs;
     }
 
-    public void setDurationSecs(long durationSecs) {
+    public void setDurationSecs(Long durationSecs) {
         this.durationSecs = durationSecs;
     }
 
@@ -103,6 +103,43 @@ public class Trip implements Comparable<Trip> {
     public int compareTo(Trip trip) {
         // For Ascending order
         return Long.compare(this.getStarted(), trip.getStarted());
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof Trip)) return false;
+
+        Trip trip = (Trip) o;
+
+        if (getStarted() != trip.getStarted()) return false;
+        if (getFinished() != null ? !getFinished().equals(trip.getFinished()) : trip.getFinished() != null)
+            return false;
+        if (!getFromStopId().equals(trip.getFromStopId())) return false;
+        if (getToStopId() != null ? !getToStopId().equals(trip.getToStopId()) : trip.getToStopId() != null)
+            return false;
+        if (!getCompanyId().equals(trip.getCompanyId())) return false;
+        if (!getBusId().equals(trip.getBusId())) return false;
+        if (!getPan().equals(trip.getPan())) return false;
+        if (!getChargeAmount().equals(trip.getChargeAmount())) return false;
+        if (getDurationSecs() != null ? !getDurationSecs().equals(trip.getDurationSecs()) : trip.getDurationSecs() != null)
+            return false;
+        return getStatus() == trip.getStatus();
+    }
+
+    @Override
+    public int hashCode() {
+        int result = (int) (getStarted() ^ (getStarted() >>> 32));
+        result = 31 * result + (getFinished() != null ? getFinished().hashCode() : 0);
+        result = 31 * result + getFromStopId().hashCode();
+        result = 31 * result + (getToStopId() != null ? getToStopId().hashCode() : 0);
+        result = 31 * result + getCompanyId().hashCode();
+        result = 31 * result + getBusId().hashCode();
+        result = 31 * result + getPan().hashCode();
+        result = 31 * result + getChargeAmount().hashCode();
+        result = 31 * result + (getDurationSecs() != null ? getDurationSecs().hashCode() : 0);
+        result = 31 * result + getStatus().hashCode();
+        return result;
     }
 
     @Override

@@ -77,6 +77,34 @@ public class Tap {
     }
 
     @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof Tap)) return false;
+
+        Tap tap = (Tap) o;
+
+        if (getId() != tap.getId()) return false;
+        if (getDateTimeInSecs() != tap.getDateTimeInSecs()) return false;
+        if (getType() != tap.getType()) return false;
+        if (!getStopId().equals(tap.getStopId())) return false;
+        if (!getCompanyId().equals(tap.getCompanyId())) return false;
+        if (!getBusId().equals(tap.getBusId())) return false;
+        return getPan().equals(tap.getPan());
+    }
+
+    @Override
+    public int hashCode() {
+        int result = (int) (getId() ^ (getId() >>> 32));
+        result = 31 * result + (int) (getDateTimeInSecs() ^ (getDateTimeInSecs() >>> 32));
+        result = 31 * result + getType().hashCode();
+        result = 31 * result + getStopId().hashCode();
+        result = 31 * result + getCompanyId().hashCode();
+        result = 31 * result + getBusId().hashCode();
+        result = 31 * result + getPan().hashCode();
+        return result;
+    }
+
+    @Override
     public String toString() {
         final StringBuilder sb = new StringBuilder("Tap{");
         sb.append("id=").append(id);

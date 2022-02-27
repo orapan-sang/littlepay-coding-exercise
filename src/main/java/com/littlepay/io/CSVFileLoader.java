@@ -1,10 +1,7 @@
 package com.littlepay.io;
 
 import com.littlepay.log.Log;
-import com.littlepay.service.bean.BusTraveller;
-import com.littlepay.service.bean.FareRule;
-import com.littlepay.service.bean.Tap;
-import com.littlepay.service.bean.TapType;
+import com.littlepay.service.bean.*;
 import com.littlepay.service.builder.FareRuleBuilder;
 import com.littlepay.service.builder.TripBuilder;
 import com.opencsv.CSVReader;
@@ -16,8 +13,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.Arrays;
 
-import static com.littlepay.service.ExerciseMain.DATETIME_FORMATTER;
-import static com.littlepay.service.ExerciseMain.UTC_TIME_ZONE;
+import static com.littlepay.service.ExerciseMain.*;
 
 public class CSVFileLoader {
     public static String DEFAULT_FARE_RULE_PATH = "src/main/resources/rule/fare-rule.csv";
@@ -45,7 +41,7 @@ public class CSVFileLoader {
                     count++;
                 }
                 catch (Exception e) {
-                    Log.warning("Cannot read fare rule: {0}", new Object[]{row}, e);
+                    Log.warning("Cannot read fare rule: {0}", new Object[]{Arrays.toString(row)}, e);
                 }
             }
         }
@@ -78,11 +74,9 @@ public class CSVFileLoader {
                     tap.setBusId(row[5].trim());
                     tap.setPan(row[6].trim());
 
-                    LocalDate date = dateTime.toLocalDate();
-                    BusTraveller traveller = new BusTraveller(tap.getCompanyId(), tap.getBusId(), tap.getPan(),
-                                                              date.atStartOfDay(UTC_TIME_ZONE).toEpochSecond());
-
-                    TripBuilder.processTravellerTap(traveller, tap);
+                    Trip trip = TripBuilder.processTap(tap);
+                    if (trip != null)
+                        TRIPS.add(trip);
 
                     count++;
                 }

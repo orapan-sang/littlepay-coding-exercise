@@ -31,7 +31,7 @@ public class CSVFileWriter {
                 String[] row = new String[0];
                 try {
                     row = new String[]{EpochToString(trip.getStarted()), EpochToString(trip.getFinished()),
-                            String.valueOf(trip.getDurationSecs()), trip.getFromStopId(),
+                            trip.getDurationSecs() != null? String.valueOf(trip.getDurationSecs()): null, trip.getFromStopId(),
                             trip.getToStopId(), trip.getChargeAmount().toString(),
                             trip.getCompanyId(), trip.getBusId(),
                             trip.getPan(), trip.getStatus().toString()};
@@ -48,8 +48,11 @@ public class CSVFileWriter {
         return true;
     }
 
-    private static String EpochToString(long epochSecs) {
-        LocalDateTime dateTime = LocalDateTime.ofInstant(Instant.ofEpochSecond(epochSecs), UTC_TIME_ZONE);
-        return dateTime.format(DATETIME_FORMATTER);
+    private static String EpochToString(Long epochSecs) {
+        if (epochSecs != null) {
+            LocalDateTime dateTime = LocalDateTime.ofInstant(Instant.ofEpochSecond(epochSecs), UTC_TIME_ZONE);
+            return dateTime.format(DATETIME_FORMATTER);
+        }
+        return null;
     }
 }
