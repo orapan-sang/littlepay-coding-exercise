@@ -16,12 +16,12 @@ import java.time.format.DateTimeFormatter;
 import java.util.*;
 
 public class TripBuilder {
-    private static DateTimeFormatter DATETIME_FORMATTER = DateTimeFormatter.ofPattern("dd-MM-yyyy HH:mm:ss");
-    private static ZoneOffset UTC_TIME_ZONE = ZoneOffset.UTC;
-    private static String[] HEADER = {"Started", "Finished", "DurationSecs", "FromStopId", "ToStopId", "ChargeAmount", "CompanyId", "BusID", "PAN", "Status"};
+    private DateTimeFormatter DATETIME_FORMATTER = DateTimeFormatter.ofPattern("dd-MM-yyyy HH:mm:ss");
+    private ZoneOffset UTC_TIME_ZONE = ZoneOffset.UTC;
+    private String[] HEADER = {"Started", "Finished", "DurationSecs", "FromStopId", "ToStopId", "ChargeAmount", "CompanyId", "BusID", "PAN", "Status"};
 
     // Map of bus traveller who used the same card on the same bus in the same day and Tap ON
-    protected static Map<BusTraveller, Tap> BUS_TRAVELLER_TAP_ON = new HashMap<>();
+    protected Map<BusTraveller, Tap> BUS_TRAVELLER_TAP_ON = new HashMap<>();
 
     private FareRuleMatrix fareRuleMatrix;
 

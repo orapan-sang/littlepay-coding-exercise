@@ -16,9 +16,9 @@ public class FareRuleMatrix {
     public ObjectMapper objectMapper = new ObjectMapper();
     // Map<FromStopId, Map<ToStopId, FareAmount>>
     // NOTE: FromStopId and ToStopId are index keys
-    protected static Map<String, Map<String, BigDecimal>> FARE_RULES  = new HashMap<>();
+    protected Map<String, Map<String, BigDecimal>> FARE_RULES  = new HashMap<>();
     // List of possible maximum fare amount from each stop
-    protected static Map<String, BigDecimal> MAX_FARE_RULES = new HashMap<>();
+    protected Map<String, BigDecimal> MAX_FARE_RULES = new HashMap<>();
 
     public int load(String fileName) {
         int count = 0;

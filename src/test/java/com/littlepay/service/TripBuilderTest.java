@@ -1,42 +1,97 @@
-package com.littlepay.service.builder;
+package com.littlepay.service;
 
-import com.littlepay.service.bean.*;
+import com.littlepay.model.Tap;
+import com.littlepay.model.TapType;
+import com.littlepay.model.Trip;
+import com.littlepay.model.TripStatus;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.TestInstance;
 
 import java.math.BigDecimal;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import static com.littlepay.service.ExerciseMain.*;
-import static com.littlepay.service.builder.TripBuilder.BUS_TRAVELLER_TAP_ON;
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
 class TripBuilderTest {
+    public static final String VALID_TAP_CSV = "src/test/resources/input/valid-tap.csv";
+    public static final String INVALID_TAP_CSV = "src/test/resources/input/invalid-tap.csv";
+
+    static FareRuleMatrix fareRuleMatrix = new FareRuleMatrix();
+
     @BeforeAll
     public static void setUpFareRules() {
         Map<String, BigDecimal> stop1 = new HashMap<>();
         stop1.put("1", new BigDecimal("0"));
         stop1.put("2", new BigDecimal("3.25"));
         stop1.put("3", new BigDecimal("7.3"));
-        FARE_RULES.put("1", stop1);
-        MAX_FARE_RULES.put("1", new BigDecimal("7.3"));
+        fareRuleMatrix.FARE_RULES.put("1", stop1);
+        fareRuleMatrix.MAX_FARE_RULES.put("1", new BigDecimal("7.3"));
 
         Map<String, BigDecimal> stop2 = new HashMap<>();
         stop2.put("1", new BigDecimal("3.25"));
         stop2.put("2", new BigDecimal("0"));
         stop2.put("3", new BigDecimal("5.5"));
-        FARE_RULES.put("2", stop2);
-        MAX_FARE_RULES.put("2", new BigDecimal("5.5"));
+        fareRuleMatrix.FARE_RULES.put("2", stop2);
+        fareRuleMatrix.MAX_FARE_RULES.put("2", new BigDecimal("5.5"));
 
         Map<String, BigDecimal> stop3 = new HashMap<>();
         stop3.put("1", new BigDecimal("7.3"));
         stop3.put("2", new BigDecimal("5.5"));
         stop3.put("3", new BigDecimal("0"));
-        FARE_RULES.put("3", stop3);
-        MAX_FARE_RULES.put("3", new BigDecimal("7.3"));
+        fareRuleMatrix.FARE_RULES.put("3", stop3);
+        fareRuleMatrix.MAX_FARE_RULES.put("3", new BigDecimal("7.3"));
+    }
+
+    @Test
+    void loadValidTapsToTrip() {
+        // ID, DateTimeUTC, TapType, StopId, CompanyId, BusID, PAN
+        // 1, 02-01-2022 10:55:00, ON, 1, CompleteTrip, Bus37, 5500005555555559
+        // 2, 02-01-2022 11:00:00, OFF, 3, CompleteTrip, Bus37, 5500005555555559
+        TripBuilder tripBuilder = new TripBuilder(fareRuleMatrix);
+        List<Trip> tripList = tripBuilder.loadTapsAndProcess(VALID_TAP_CSV);
+
+        // Expect 1 trip
+        assertEquals(1, tripList.size());
+
+        Trip actualTrip = tripList.get(0);
+        Trip expectedTrip = new Trip();
+        expectedTrip.setBusId("Bus37");
+        expectedTrip.setCompanyId("CompleteTrip");
+        expectedTrip.setPan("5500005555555559");
+        expectedTrip.setFromStopId("1");
+        expectedTrip.setToStopId("3");
+        expectedTrip.setStarted(1641120900L);
+        expectedTrip.setFinished(1641121200L);
+        expectedTrip.setDurationSecs(300L);
+        expectedTrip.setChargeAmount(new BigDecimal("7.3"));
+        expectedTrip.setStatus(TripStatus.COMPLETE);
+        assertEquals(expectedTrip, actualTrip);
+    }
+
+    @Test
+    void loadInvalidTapsToTrip() {
+        // ID, DateTimeUTC, TapType, StopId, CompanyId, BusID, PAN
+        // 1, 02-01-2022 08:11:00, UNKNOWN, 2, TapOnWithoutTapOff1, Bus20, 3528000700000000
+        // 2, 02-01-2022 10:55:00, ON, 1, IncompleteTrip, Bus37, 5500005555555559
+        TripBuilder tripBuilder = new TripBuilder(fareRuleMatrix);
+        List<Trip> tripList = tripBuilder.loadTapsAndProcess(INVALID_TAP_CSV);
+        // Skip one invalid row
+        // Expect 1 trip
+        assertEquals(1, tripList.size());
+
+        Trip actualTrip = tripList.get(0);
+        Trip expectedTrip = new Trip();
+        expectedTrip.setBusId("Bus37");
+        expectedTrip.setCompanyId("IncompleteTrip");
+        expectedTrip.setPan("5500005555555559");
+        expectedTrip.setFromStopId("1");
+        expectedTrip.setStarted(1641120900L);
+        expectedTrip.setChargeAmount(new BigDecimal("7.3"));
+        expectedTrip.setStatus(TripStatus.INCOMPLETE);
+        assertEquals(expectedTrip, actualTrip);
     }
 
     @Test
@@ -50,10 +105,9 @@ class TripBuilderTest {
         tapCompleteOn.setCompanyId("Complete1");
         tapCompleteOn.setStopId("1");
         tapCompleteOn.setDateTimeInSecs(1641034800L);  // 01-01-2022 11:00:00
-        Trip trip = TripBuilder.processTap(tapCompleteOn);
+        TripBuilder tripBuilder = new TripBuilder(fareRuleMatrix);
+        Trip trip = tripBuilder.processTap(tapCompleteOn);
         assertNull(trip);
-        // tapCompleteOn will be added to BUS_TRAVELLER_TAP_ON
-        assertEquals(tapCompleteOn, BUS_TRAVELLER_TAP_ON.get(TripBuilder.getBusTraveller(tapCompleteOn)));
 
         // ---- TAP OFF ----
         Tap tapCompleteOff = new Tap();
@@ -64,9 +118,7 @@ class TripBuilderTest {
         tapCompleteOff.setCompanyId("Complete1");
         tapCompleteOff.setStopId("3");
         tapCompleteOff.setDateTimeInSecs(1641035400L);  // 01-01-2022 11:10:00
-        Trip actualTrip = TripBuilder.processTap(tapCompleteOff);
-        // Complete a trip so Tap ON for this bus traveller will be removed
-        assertNull(BUS_TRAVELLER_TAP_ON.get(TripBuilder.getBusTraveller(tapCompleteOff)));
+        Trip actualTrip = tripBuilder.processTap(tapCompleteOff);
 
         Trip expectedTrip = new Trip();
         expectedTrip.setBusId("Bus1");
@@ -93,10 +145,9 @@ class TripBuilderTest {
         tapOffOnly.setCompanyId("OnlyTapOff");
         tapOffOnly.setStopId("3");
         tapOffOnly.setDateTimeInSecs(1641035400L);  // 01-01-2022 11:10:00
-        Trip trip = TripBuilder.processTap(tapOffOnly);
+        TripBuilder tripBuilder = new TripBuilder(fareRuleMatrix);
+        Trip trip = tripBuilder.processTap(tapOffOnly);
         assertNull(trip);
-        // Tap off won't be stored in BUS_TRAVELLER_TAP_ON
-        assertNull(BUS_TRAVELLER_TAP_ON.get(TripBuilder.getBusTraveller(tapOffOnly)));
 
         // ---- TAP ON without TAP OFF ----
         Tap incompleteTap1 = new Tap();
@@ -107,10 +158,8 @@ class TripBuilderTest {
         incompleteTap1.setCompanyId("Incomplete");
         incompleteTap1.setStopId("1");
         incompleteTap1.setDateTimeInSecs(1641035700L);  // 01-01-2022 11:15:00
-        trip = TripBuilder.processTap(incompleteTap1);
+        trip = tripBuilder.processTap(incompleteTap1);
         assertNull(trip);
-        // incompleteTap1 will be added to BUS_TRAVELLER_TAP_ON
-        assertEquals(incompleteTap1, BUS_TRAVELLER_TAP_ON.get(TripBuilder.getBusTraveller(incompleteTap1)));
 
         // ---- TAP ON without TAP OFF (2nd time) ----
         Tap incompleteTap2 = new Tap();
@@ -122,9 +171,7 @@ class TripBuilderTest {
         incompleteTap2.setStopId("2");
         incompleteTap2.setDateTimeInSecs(1641036000L);  // 01-01-2022 11:20:00
         // Marked 1st incompleteTap as an INCOMPLETE trip
-        Trip actualTrip = TripBuilder.processTap(incompleteTap2);
-        // incompleteTap2 will be added to BUS_TRAVELLER_TAP_ON
-        assertEquals(incompleteTap2, BUS_TRAVELLER_TAP_ON.get(TripBuilder.getBusTraveller(incompleteTap2)));
+        Trip actualTrip = tripBuilder.processTap(incompleteTap2);
 
         Trip expectedTrip = new Trip();
         expectedTrip.setBusId("Bus1");
@@ -146,15 +193,11 @@ class TripBuilderTest {
         incompleteTap3.setStopId("3");
         incompleteTap3.setDateTimeInSecs(1641036000L);  // 01-01-2022 11:20:00
         // Marked 1st incompleteTap as an INCOMPLETE trip
-        trip = TripBuilder.processTap(incompleteTap3);
+        trip = tripBuilder.processTap(incompleteTap3);
         assertNull(trip);
-        // incompleteTap3 will be added to BUS_TRAVELLER_TAP_ON
-        assertEquals(incompleteTap3, BUS_TRAVELLER_TAP_ON.get(TripBuilder.getBusTraveller(incompleteTap3)));
 
         // Get the 2nd and 3rd INCOMPLETE TRIP from BUS_TRAVELLER_TAP_ON
-        List<Trip> incompleteTrips = TripBuilder.finalizeIncompleteTrip();
-        // Marked all trips left in BUS_TRAVELLER_TAP_ON as INCOMPLETE
-        assertNull(BUS_TRAVELLER_TAP_ON.get(TripBuilder.getBusTraveller(tapOffOnly)));
+        List<Trip> incompleteTrips = tripBuilder.finalizeIncompleteTrip();
         assertEquals(2, incompleteTrips.size());
         // From incompleteTap2
         expectedTrip = new Trip();
@@ -189,10 +232,9 @@ class TripBuilderTest {
         tapCancelledOn.setCompanyId("Cancelled");
         tapCancelledOn.setStopId("1");
         tapCancelledOn.setDateTimeInSecs(1641034800L);  // 01-01-2022 11:00:00
-        Trip trip = TripBuilder.processTap(tapCancelledOn);
+        TripBuilder tripBuilder = new TripBuilder(fareRuleMatrix);
+        Trip trip = tripBuilder.processTap(tapCancelledOn);
         assertNull(trip);
-        // tapCompleteOn will be added to BUS_TRAVELLER_TAP_ON
-        assertEquals(tapCancelledOn, BUS_TRAVELLER_TAP_ON.get(TripBuilder.getBusTraveller(tapCancelledOn)));
 
         // ---- TAP OFF ----
         Tap tapCancelledOff = new Tap();
@@ -203,9 +245,7 @@ class TripBuilderTest {
         tapCancelledOff.setCompanyId("Cancelled");
         tapCancelledOff.setStopId("1");
         tapCancelledOff.setDateTimeInSecs(1641034860L);  // 01-01-2022 11:01:00
-        Trip actualTrip = TripBuilder.processTap(tapCancelledOff);
-        // Complete a trip so Tap ON for this bus traveller will be removed
-        assertNull(BUS_TRAVELLER_TAP_ON.get(TripBuilder.getBusTraveller(tapCancelledOff)));
+        Trip actualTrip = tripBuilder.processTap(tapCancelledOff);
 
         Trip expectedTrip = new Trip();
         expectedTrip.setBusId("Bus1");
@@ -229,10 +269,8 @@ class TripBuilderTest {
         tapCancelledOn.setCompanyId("Cancelled");
         tapCancelledOn.setStopId("1");
         tapCancelledOn.setDateTimeInSecs(1641034800L);  // 01-01-2022 11:00:00
-        trip = TripBuilder.processTap(tapCancelledOn);
+        trip = tripBuilder.processTap(tapCancelledOn);
         assertNull(trip);
-        // tapCompleteOn will be added to BUS_TRAVELLER_TAP_ON
-        assertEquals(tapCancelledOn, BUS_TRAVELLER_TAP_ON.get(TripBuilder.getBusTraveller(tapCancelledOn)));
 
         tapCancelledOff = new Tap();
         tapCancelledOff.setId(2L);
@@ -242,9 +280,7 @@ class TripBuilderTest {
         tapCancelledOff.setCompanyId("Cancelled");
         tapCancelledOff.setStopId("1");
         tapCancelledOff.setDateTimeInSecs(1641034800L);  // 01-01-2022 11:01:00
-        actualTrip = TripBuilder.processTap(tapCancelledOff);
-        // Complete a trip so Tap ON for this bus traveller will be removed
-        assertNull(BUS_TRAVELLER_TAP_ON.get(TripBuilder.getBusTraveller(tapCancelledOff)));
+        actualTrip = tripBuilder.processTap(tapCancelledOff);
 
         expectedTrip = new Trip();
         expectedTrip.setBusId("Bus1");
@@ -259,8 +295,4 @@ class TripBuilderTest {
         expectedTrip.setStatus(TripStatus.CANCELLED);
         assertEquals(expectedTrip, actualTrip);
     }
-
-//    @Test
-//    void finalizeIncompleteTrip() {
-//    }
 }
