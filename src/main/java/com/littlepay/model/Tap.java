@@ -1,5 +1,10 @@
 package com.littlepay.model;
 
+import java.util.Objects;
+
+/**
+ * A class represents a tap row from CSV file
+ */
 public class Tap {
     // Tap ID
     private long id;
@@ -80,28 +85,13 @@ public class Tap {
     public boolean equals(Object o) {
         if (this == o) return true;
         if (!(o instanceof Tap)) return false;
-
         Tap tap = (Tap) o;
-
-        if (getId() != tap.getId()) return false;
-        if (getDateTimeInSecs() != tap.getDateTimeInSecs()) return false;
-        if (getType() != tap.getType()) return false;
-        if (!getStopId().equals(tap.getStopId())) return false;
-        if (!getCompanyId().equals(tap.getCompanyId())) return false;
-        if (!getBusId().equals(tap.getBusId())) return false;
-        return getPan().equals(tap.getPan());
+        return getId() == tap.getId() && getDateTimeInSecs() == tap.getDateTimeInSecs() && getType() == tap.getType() && getStopId().equals(tap.getStopId()) && getCompanyId().equals(tap.getCompanyId()) && getBusId().equals(tap.getBusId()) && getPan().equals(tap.getPan());
     }
 
     @Override
     public int hashCode() {
-        int result = (int) (getId() ^ (getId() >>> 32));
-        result = 31 * result + (int) (getDateTimeInSecs() ^ (getDateTimeInSecs() >>> 32));
-        result = 31 * result + getType().hashCode();
-        result = 31 * result + getStopId().hashCode();
-        result = 31 * result + getCompanyId().hashCode();
-        result = 31 * result + getBusId().hashCode();
-        result = 31 * result + getPan().hashCode();
-        return result;
+        return Objects.hash(getId(), getDateTimeInSecs(), getType(), getStopId(), getCompanyId(), getBusId(), getPan());
     }
 
     @Override

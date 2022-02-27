@@ -8,12 +8,14 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class TripBuilderTest {
     public static final String VALID_TAP_CSV = "src/test/resources/input/valid-tap.csv";
@@ -51,7 +53,7 @@ class TripBuilderTest {
         // 1, 02-01-2022 10:55:00, ON, 1, CompleteTrip, Bus37, 5500005555555559
         // 2, 02-01-2022 11:00:00, OFF, 3, CompleteTrip, Bus37, 5500005555555559
         TripBuilder tripBuilder = new TripBuilder(fareRuleMatrix);
-        List<Trip> tripList = tripBuilder.loadTapsAndProcess(VALID_TAP_CSV);
+        List<Trip> tripList = tripBuilder.loadAndProcessTaps(VALID_TAP_CSV);
 
         // Expect 1 trip
         assertEquals(1, tripList.size());
@@ -77,7 +79,7 @@ class TripBuilderTest {
         // 1, 02-01-2022 08:11:00, UNKNOWN, 2, TapOnWithoutTapOff1, Bus20, 3528000700000000
         // 2, 02-01-2022 10:55:00, ON, 1, IncompleteTrip, Bus37, 5500005555555559
         TripBuilder tripBuilder = new TripBuilder(fareRuleMatrix);
-        List<Trip> tripList = tripBuilder.loadTapsAndProcess(INVALID_TAP_CSV);
+        List<Trip> tripList = tripBuilder.loadAndProcessTaps(INVALID_TAP_CSV);
         // Skip one invalid row
         // Expect 1 trip
         assertEquals(1, tripList.size());
@@ -199,26 +201,32 @@ class TripBuilderTest {
         // Get the 2nd and 3rd INCOMPLETE TRIP from BUS_TRAVELLER_TAP_ON
         List<Trip> incompleteTrips = tripBuilder.finalizeIncompleteTrip();
         assertEquals(2, incompleteTrips.size());
+
+        List<Trip> expectedIncompleteTrips = new ArrayList<>();
         // From incompleteTap2
-        expectedTrip = new Trip();
-        expectedTrip.setBusId("Bus1");
-        expectedTrip.setCompanyId("Incomplete");
-        expectedTrip.setPan("5500005555555559");
-        expectedTrip.setFromStopId("2");
-        expectedTrip.setStarted(1641036000L);
-        expectedTrip.setChargeAmount(new BigDecimal("5.5"));
-        expectedTrip.setStatus(TripStatus.INCOMPLETE);
-        assertEquals(expectedTrip, incompleteTrips.get(0));
+        Trip expectedTrip1 = new Trip();
+        expectedTrip1.setBusId("Bus1");
+        expectedTrip1.setCompanyId("Incomplete");
+        expectedTrip1.setPan("5500005555555559");
+        expectedTrip1.setFromStopId("2");
+        expectedTrip1.setStarted(1641036000L);
+        expectedTrip1.setChargeAmount(new BigDecimal("5.5"));
+        expectedTrip1.setStatus(TripStatus.INCOMPLETE);
+        expectedIncompleteTrips.add(expectedTrip1);
         // From incompleteTap3
-        expectedTrip = new Trip();
-        expectedTrip.setBusId("Bus1");
-        expectedTrip.setCompanyId("Incomplete");
-        expectedTrip.setPan("4462030000000000");
-        expectedTrip.setFromStopId("3");
-        expectedTrip.setStarted(1641036000L);
-        expectedTrip.setChargeAmount(new BigDecimal("7.3"));
-        expectedTrip.setStatus(TripStatus.INCOMPLETE);
-        assertEquals(expectedTrip, incompleteTrips.get(1));
+        Trip expectedTrip2 = new Trip();
+        expectedTrip2.setBusId("Bus1");
+        expectedTrip2.setCompanyId("Incomplete");
+        expectedTrip2.setPan("4462030000000000");
+        expectedTrip2.setFromStopId("3");
+        expectedTrip2.setStarted(1641036000L);
+        expectedTrip2.setChargeAmount(new BigDecimal("7.3"));
+        expectedTrip2.setStatus(TripStatus.INCOMPLETE);
+        expectedIncompleteTrips.add(expectedTrip2);
+
+        assertTrue(incompleteTrips.size() == expectedIncompleteTrips.size()
+                && incompleteTrips.containsAll(expectedIncompleteTrips)
+                && expectedIncompleteTrips.containsAll(incompleteTrips));
     }
 
     @Test

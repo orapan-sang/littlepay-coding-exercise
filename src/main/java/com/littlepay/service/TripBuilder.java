@@ -15,6 +15,10 @@ import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
 
+/**
+ * Initialize this class with FareRuleMatrix to process taps from CSV file
+ * and return a trip list, which can be exported to a CSV file.
+ */
 public class TripBuilder {
     private DateTimeFormatter DATETIME_FORMATTER = DateTimeFormatter.ofPattern("dd-MM-yyyy HH:mm:ss");
     private ZoneOffset UTC_TIME_ZONE = ZoneOffset.UTC;
@@ -29,7 +33,7 @@ public class TripBuilder {
         this.fareRuleMatrix = fareRuleMatrix;
     }
 
-    public List<Trip> loadTapsAndProcess(String fileName) {
+    public List<Trip> loadAndProcessTaps(String fileName) {
         int count = 0;
         List<Trip> trips = new ArrayList<>();
         try (CSVReader csvReader = new CSVReaderBuilder(new FileReader(fileName)).withSkipLines(1).build()) {
@@ -72,7 +76,7 @@ public class TripBuilder {
         return trips;
     }
 
-    public Trip processTap(Tap newTap) {
+    protected Trip processTap(Tap newTap) {
         Trip trip = null;
         BusTraveller traveller = getBusTraveller(newTap);
         if (BUS_TRAVELLER_TAP_ON.containsKey(traveller)) {
@@ -101,10 +105,9 @@ public class TripBuilder {
         return trip;
     }
 
-    public List<Trip> finalizeIncompleteTrip() {
+    protected List<Trip> finalizeIncompleteTrip() {
         List<Trip> incompleteTrips = new ArrayList<>();
         // Read all incomplete taps left in BUS_TRAVELLER_TAP_ON
-        BUS_TRAVELLER_TAP_ON.forEach((key, value) -> System.out.println("ORAPAN => "+key + ":" + value));
         for (Map.Entry<BusTraveller, Tap> entry : BUS_TRAVELLER_TAP_ON.entrySet()) {
             Trip trip = createTrip(entry.getValue(), null, TripStatus.INCOMPLETE);
             incompleteTrips.add(trip);
@@ -158,8 +161,6 @@ public class TripBuilder {
     }
 
     private Trip matchTapsToTrip(Tap tapOn, Tap newTap) {
-        System.out.println("ON ==> "+tapOn);
-        System.out.println("NEW ==> "+newTap);
         // Check if both taps are at the same stop
         if (tapOn.getStopId().equals(newTap.getStopId())) {
             if (validateTapsAtSameStop(tapOn, newTap)) {

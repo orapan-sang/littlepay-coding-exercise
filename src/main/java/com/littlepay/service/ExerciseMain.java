@@ -21,7 +21,7 @@ public class ExerciseMain {
         Log.info("Loading taps...", null);
         filename = getEnv("TAP_PATH", DEFAULT_TAP_PATH);
         TripBuilder tripBuilder = new TripBuilder(fareRuleMatrix);
-        List<Trip> trips = tripBuilder.loadTapsAndProcess(filename);
+        List<Trip> trips = tripBuilder.loadAndProcessTaps(filename);
 
         Log.info("Writing trips...", null);
         filename = getEnv("TRIP_PATH", DEFAULT_TRIP_PATH);

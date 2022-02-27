@@ -1,5 +1,10 @@
 package com.littlepay.model;
 
+import java.util.Objects;
+
+/**
+ * A class of bus traveller who used the same card on the same bus in the same day
+ */
 public class BusTraveller {
     // Bus company ID
     private String companyId;
@@ -57,22 +62,13 @@ public class BusTraveller {
     public boolean equals(Object o) {
         if (this == o) return true;
         if (!(o instanceof BusTraveller)) return false;
-
-        BusTraveller traveller = (BusTraveller) o;
-
-        if (getDateInSecs() != traveller.getDateInSecs()) return false;
-        if (!getCompanyId().equals(traveller.getCompanyId())) return false;
-        if (!getBusId().equals(traveller.getBusId())) return false;
-        return getPan().equals(traveller.getPan());
+        BusTraveller that = (BusTraveller) o;
+        return getDateInSecs() == that.getDateInSecs() && getCompanyId().equals(that.getCompanyId()) && getBusId().equals(that.getBusId()) && getPan().equals(that.getPan());
     }
 
     @Override
     public int hashCode() {
-        int result = getCompanyId().hashCode();
-        result = 31 * result + getBusId().hashCode();
-        result = 31 * result + getPan().hashCode();
-        result = 31 * result + (int) (getDateInSecs() ^ (getDateInSecs() >>> 32));
-        return result;
+        return Objects.hash(getCompanyId(), getBusId(), getPan(), getDateInSecs());
     }
 
     @Override

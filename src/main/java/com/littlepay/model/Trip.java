@@ -1,7 +1,11 @@
 package com.littlepay.model;
 
 import java.math.BigDecimal;
+import java.util.Objects;
 
+/**
+ * A class represents a trip, which is a result from tap processing
+ */
 public class Trip implements Comparable<Trip> {
     private long started;
     private Long finished;
@@ -109,37 +113,13 @@ public class Trip implements Comparable<Trip> {
     public boolean equals(Object o) {
         if (this == o) return true;
         if (!(o instanceof Trip)) return false;
-
         Trip trip = (Trip) o;
-
-        if (getStarted() != trip.getStarted()) return false;
-        if (getFinished() != null ? !getFinished().equals(trip.getFinished()) : trip.getFinished() != null)
-            return false;
-        if (!getFromStopId().equals(trip.getFromStopId())) return false;
-        if (getToStopId() != null ? !getToStopId().equals(trip.getToStopId()) : trip.getToStopId() != null)
-            return false;
-        if (!getCompanyId().equals(trip.getCompanyId())) return false;
-        if (!getBusId().equals(trip.getBusId())) return false;
-        if (!getPan().equals(trip.getPan())) return false;
-        if (!getChargeAmount().equals(trip.getChargeAmount())) return false;
-        if (getDurationSecs() != null ? !getDurationSecs().equals(trip.getDurationSecs()) : trip.getDurationSecs() != null)
-            return false;
-        return getStatus() == trip.getStatus();
+        return getStarted() == trip.getStarted() && Objects.equals(getFinished(), trip.getFinished()) && getFromStopId().equals(trip.getFromStopId()) && Objects.equals(getToStopId(), trip.getToStopId()) && getCompanyId().equals(trip.getCompanyId()) && getBusId().equals(trip.getBusId()) && getPan().equals(trip.getPan()) && getChargeAmount().equals(trip.getChargeAmount()) && Objects.equals(getDurationSecs(), trip.getDurationSecs()) && getStatus() == trip.getStatus();
     }
 
     @Override
     public int hashCode() {
-        int result = (int) (getStarted() ^ (getStarted() >>> 32));
-        result = 31 * result + (getFinished() != null ? getFinished().hashCode() : 0);
-        result = 31 * result + getFromStopId().hashCode();
-        result = 31 * result + (getToStopId() != null ? getToStopId().hashCode() : 0);
-        result = 31 * result + getCompanyId().hashCode();
-        result = 31 * result + getBusId().hashCode();
-        result = 31 * result + getPan().hashCode();
-        result = 31 * result + getChargeAmount().hashCode();
-        result = 31 * result + (getDurationSecs() != null ? getDurationSecs().hashCode() : 0);
-        result = 31 * result + getStatus().hashCode();
-        return result;
+        return Objects.hash(getStarted(), getFinished(), getFromStopId(), getToStopId(), getCompanyId(), getBusId(), getPan(), getChargeAmount(), getDurationSecs(), getStatus());
     }
 
     @Override
