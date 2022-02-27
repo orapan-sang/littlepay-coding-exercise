@@ -1,27 +1,78 @@
-package com.littlepay.service.builder;
+package com.littlepay.service;
 
+import com.littlepay.model.*;
 import com.littlepay.log.Log;
-import com.littlepay.service.bean.BusTraveller;
-import com.littlepay.service.bean.Tap;
-import com.littlepay.service.bean.Trip;
-import com.littlepay.service.bean.TripStatus;
+import com.opencsv.CSVReader;
+import com.opencsv.CSVReaderBuilder;
+import com.opencsv.CSVWriter;
 
-import java.math.BigDecimal;
+import java.io.FileReader;
+import java.io.FileWriter;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
-import static com.littlepay.service.ExerciseMain.*;
+import java.time.ZoneOffset;
+import java.time.format.DateTimeFormatter;
+import java.util.*;
 
 public class TripBuilder {
+    private static DateTimeFormatter DATETIME_FORMATTER = DateTimeFormatter.ofPattern("dd-MM-yyyy HH:mm:ss");
+    private static ZoneOffset UTC_TIME_ZONE = ZoneOffset.UTC;
+    private static String[] HEADER = {"Started", "Finished", "DurationSecs", "FromStopId", "ToStopId", "ChargeAmount", "CompanyId", "BusID", "PAN", "Status"};
+
     // Map of bus traveller who used the same card on the same bus in the same day and Tap ON
     protected static Map<BusTraveller, Tap> BUS_TRAVELLER_TAP_ON = new HashMap<>();
 
-    public static Trip processTap(Tap newTap) {
+    private FareRuleMatrix fareRuleMatrix;
+
+    public TripBuilder(FareRuleMatrix fareRuleMatrix) {
+        this.fareRuleMatrix = fareRuleMatrix;
+    }
+
+    public List<Trip> loadTapsAndProcess(String fileName) {
+        int count = 0;
+        List<Trip> trips = new ArrayList<>();
+        try (CSVReader csvReader = new CSVReaderBuilder(new FileReader(fileName)).withSkipLines(1).build()) {
+            String[] row;
+            // Read tap line by line
+            // Format: ID, DateTimeUTC, TapType, StopId, CompanyId, BusID, PAN
+            while ((row = csvReader.readNext()) != null) {
+                // Skip invalid line
+                if (row.length != 7)
+                    continue;
+
+                try {
+                    LocalDateTime dateTime = LocalDateTime.parse(row[1].trim(), DATETIME_FORMATTER);
+
+                    Tap tap = new Tap();
+                    tap.setId(Long.parseLong(row[0].trim()));
+                    tap.setDateTimeInSecs(dateTime.toEpochSecond(UTC_TIME_ZONE));
+                    tap.setType(TapType.valueOf(row[2].trim()));
+                    tap.setStopId(row[3].trim());
+                    tap.setCompanyId(row[4].trim());
+                    tap.setBusId(row[5].trim());
+                    tap.setPan(row[6].trim());
+
+                    Trip trip = processTap(tap);
+                    if (trip != null)
+                        trips.add(trip);
+
+                    count++;
+                }
+                catch (Exception e) {
+                    e.printStackTrace();
+                    Log.warning("Cannot read tap: {0}", new Object[]{Arrays.toString(row)}, e);
+                }
+            }
+            trips.addAll(finalizeIncompleteTrip());
+        }
+        catch (Exception e) {
+            Log.warning("Cannot read {0}", new Object[]{fileName}, e);
+        }
+        return trips;
+    }
+
+    public Trip processTap(Tap newTap) {
         Trip trip = null;
         BusTraveller traveller = getBusTraveller(newTap);
         if (BUS_TRAVELLER_TAP_ON.containsKey(traveller)) {
@@ -50,7 +101,7 @@ public class TripBuilder {
         return trip;
     }
 
-    public static List<Trip> finalizeIncompleteTrip() {
+    public List<Trip> finalizeIncompleteTrip() {
         List<Trip> incompleteTrips = new ArrayList<>();
         // Read all incomplete taps left in BUS_TRAVELLER_TAP_ON
         BUS_TRAVELLER_TAP_ON.forEach((key, value) -> System.out.println("ORAPAN => "+key + ":" + value));
@@ -63,7 +114,50 @@ public class TripBuilder {
         return incompleteTrips;
     }
 
-    public static Trip matchTapsToTrip(Tap tapOn, Tap newTap) {
+    public boolean exportTripsToCsv(String fileName, List<Trip> trips) {
+        // Sort Trips by Started (ASC)
+        Collections.sort(trips);
+
+        try (CSVWriter writer = new CSVWriter(new FileWriter(fileName),
+                CSVWriter.DEFAULT_SEPARATOR,
+                CSVWriter.NO_QUOTE_CHARACTER,
+                CSVWriter.DEFAULT_ESCAPE_CHARACTER,
+                CSVWriter.DEFAULT_LINE_END)) {
+            // Write header
+            writer.writeNext(HEADER);
+
+
+            // Write each trip line by line
+            for (Trip trip: trips) {
+                String[] row = new String[0];
+                try {
+                    row = new String[]{EpochToString(trip.getStarted()), EpochToString(trip.getFinished()),
+                            trip.getDurationSecs() != null? String.valueOf(trip.getDurationSecs()): null, trip.getFromStopId(),
+                            trip.getToStopId(), trip.getChargeAmount().toString(),
+                            trip.getCompanyId(), trip.getBusId(),
+                            trip.getPan(), trip.getStatus().toString()};
+                    writer.writeNext(row);
+                }
+                catch (Exception e) {
+                    Log.warning("Cannot write trip: {0}", new Object[]{row}, e);
+                }
+            }
+        } catch (Exception e) {
+            Log.warning("Cannot write {0}", new Object[]{fileName}, e);
+        }
+
+        return true;
+    }
+
+    private String EpochToString(Long epochSecs) {
+        if (epochSecs != null) {
+            LocalDateTime dateTime = LocalDateTime.ofInstant(Instant.ofEpochSecond(epochSecs), UTC_TIME_ZONE);
+            return dateTime.format(DATETIME_FORMATTER);
+        }
+        return null;
+    }
+
+    private Trip matchTapsToTrip(Tap tapOn, Tap newTap) {
         System.out.println("ON ==> "+tapOn);
         System.out.println("NEW ==> "+newTap);
         // Check if both taps are at the same stop
@@ -86,7 +180,7 @@ public class TripBuilder {
         return null;
     }
 
-    public static BusTraveller getBusTraveller(Tap tap) {
+    private BusTraveller getBusTraveller(Tap tap) {
         LocalDateTime dateTime = LocalDateTime.ofInstant(Instant.ofEpochSecond(tap.getDateTimeInSecs()), UTC_TIME_ZONE);
         LocalDate date = dateTime.toLocalDate();
         BusTraveller traveller = new BusTraveller(tap.getCompanyId(), tap.getBusId(), tap.getPan(),
@@ -95,18 +189,7 @@ public class TripBuilder {
         return traveller;
     }
 
-    private static BigDecimal getFare(String fromStopId, String toStopId)
-    {
-        if (toStopId == null) {
-            return MAX_FARE_RULES.get(fromStopId);
-        }
-        else {
-            Map<String, BigDecimal>  toStopFares = objectMapper.convertValue(FARE_RULES.get(fromStopId), Map.class);
-            return toStopFares.get(toStopId);
-        }
-    }
-
-    private static boolean validateTapOnAndOff(Tap tapOn, Tap newTap) {
+    private boolean validateTapOnAndOff(Tap tapOn, Tap newTap) {
         // These 2 taps should be one ON and OFF
         if (!tapOn.getType().equals(newTap.getType())) {
             if (tapOn.getType().isTapOn()) {
@@ -121,7 +204,7 @@ public class TripBuilder {
         return false;
     }
 
-    private static boolean validateTapsAtSameStop(Tap tapOn, Tap newTap) {
+    private boolean validateTapsAtSameStop(Tap tapOn, Tap newTap) {
         // These 2 taps should be one ON and OFF
         if (!tapOn.getType().equals(newTap.getType())) {
             if (tapOn.getType().isTapOn()) {
@@ -136,7 +219,7 @@ public class TripBuilder {
         return false;
     }
 
-    private static Trip createTrip(Tap tapOn, Tap tapOff, TripStatus status) {
+    private Trip createTrip(Tap tapOn, Tap tapOff, TripStatus status) {
         Trip trip = new Trip();
         trip.setBusId(tapOn.getBusId());
         trip.setCompanyId(tapOn.getCompanyId());
@@ -147,12 +230,12 @@ public class TripBuilder {
 
         if (tapOff != null) {
             trip.setToStopId(tapOff.getStopId());
-            trip.setChargeAmount(getFare(tapOn.getStopId(), tapOff.getStopId()));
+            trip.setChargeAmount(fareRuleMatrix.getFare(tapOn.getStopId(), tapOff.getStopId()));
             trip.setDurationSecs(tapOff.getDateTimeInSecs() - tapOn.getDateTimeInSecs());
             trip.setFinished(tapOff.getDateTimeInSecs());
         }
         else {
-            trip.setChargeAmount(getFare(tapOn.getStopId(), null));
+            trip.setChargeAmount(fareRuleMatrix.getFare(tapOn.getStopId(), null));
         }
 
         return trip;

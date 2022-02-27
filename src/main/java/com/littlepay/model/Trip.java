@@ -1,4 +1,4 @@
-package com.littlepay.service.bean;
+package com.littlepay.model;
 
 import java.math.BigDecimal;
 
