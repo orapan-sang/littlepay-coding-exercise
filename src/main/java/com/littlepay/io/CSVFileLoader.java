@@ -85,7 +85,7 @@ public class CSVFileLoader {
                     Log.warning("Cannot read tap: {0}", new Object[]{Arrays.toString(row)}, e);
                 }
             }
-            TripBuilder.finalizeIncompleteTrip();
+            TRIPS.addAll(TripBuilder.finalizeIncompleteTrip());
         }
         catch (Exception e) {
             Log.warning("Cannot read {0}", new Object[]{fileName}, e);

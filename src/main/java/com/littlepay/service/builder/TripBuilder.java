@@ -10,14 +10,16 @@ import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import static com.littlepay.service.ExerciseMain.*;
 
 public class TripBuilder {
     // Map of bus traveller who used the same card on the same bus in the same day and Tap ON
-    public static Map<BusTraveller, Tap> BUS_TRAVELLER_TAP_ON = new HashMap<>();
+    protected static Map<BusTraveller, Tap> BUS_TRAVELLER_TAP_ON = new HashMap<>();
 
     public static Trip processTap(Tap newTap) {
         Trip trip = null;
@@ -48,13 +50,17 @@ public class TripBuilder {
         return trip;
     }
 
-    public static void finalizeIncompleteTrip() {
+    public static List<Trip> finalizeIncompleteTrip() {
+        List<Trip> incompleteTrips = new ArrayList<>();
         // Read all incomplete taps left in BUS_TRAVELLER_TAP_ON
         BUS_TRAVELLER_TAP_ON.forEach((key, value) -> System.out.println("ORAPAN => "+key + ":" + value));
         for (Map.Entry<BusTraveller, Tap> entry : BUS_TRAVELLER_TAP_ON.entrySet()) {
             Trip trip = createTrip(entry.getValue(), null, TripStatus.INCOMPLETE);
-            TRIPS.add(trip);
+            incompleteTrips.add(trip);
         }
+        // Clean up BUS_TRAVELLER_TAP_ON
+        BUS_TRAVELLER_TAP_ON.clear();
+        return incompleteTrips;
     }
 
     public static Trip matchTapsToTrip(Tap tapOn, Tap newTap) {

@@ -1,0 +1,3 @@
+FromStopId, ToStopId, FareAmount
+1,2,"unknown"
+2,3,5.5
