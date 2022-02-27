@@ -3,7 +3,7 @@ package com.littlepay.model;
 import java.util.Objects;
 
 /**
- * A class represents a tap row from CSV file
+ * A class represents a tap row from input CSV file
  */
 public class Tap {
     // Tap ID

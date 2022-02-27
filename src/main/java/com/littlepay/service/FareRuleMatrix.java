@@ -13,8 +13,8 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * Initialize this class to load fare rules from CSV file
- * and create maps of fare rule and max fare rule with FromStopId & ToStopId as index key,
+ * Initializes this class to load fare rules from CSV file
+ * and creates maps of fare rule and max fare rule with FromStopId & ToStopId as index key,
  * which will make it easy to get fare amount when provides start and stop ID
  */
 public class FareRuleMatrix {

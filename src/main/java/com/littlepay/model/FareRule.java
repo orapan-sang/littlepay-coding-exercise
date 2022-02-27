@@ -3,7 +3,7 @@ package com.littlepay.model;
 import java.math.BigDecimal;
 
 /**
- * A class represents a fare rule row from CSV file
+ * A class represents a fare rule row from input CSV file
  */
 public class FareRule {
   private String fromStopId;

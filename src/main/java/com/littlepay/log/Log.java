@@ -3,6 +3,9 @@ package com.littlepay.log;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+/**
+ * Log utility to log a message on INFO, WARNING or FINE level
+ */
 public class Log {
     private static final Logger log = Logger.getLogger(Log.class.getName());
 

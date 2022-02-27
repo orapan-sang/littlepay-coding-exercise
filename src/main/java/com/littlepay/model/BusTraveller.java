@@ -3,7 +3,7 @@ package com.littlepay.model;
 import java.util.Objects;
 
 /**
- * A class of bus traveller who used the same card on the same bus in the same day
+ * A class represents a bus traveller who uses the same card on the same bus in the same day
  */
 public class BusTraveller {
     // Bus company ID

@@ -16,7 +16,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.*;
 
 /**
- * Initialize this class with FareRuleMatrix to process taps from CSV file
+ * Initializes this class with FareRuleMatrix to process taps from input CSV file
  * and return a trip list, which can be exported to a CSV file.
  */
 public class TripBuilder {
